@@ -19,40 +19,49 @@ try {
   /**
    * check if we are the master and step down if necessary
    */
-  if ( rs.isMaster().ismaster ) {
-    say( "[INFO] Connected to PRIMARY, going to step down..." );
+  if ( rs.status().ok == 0 ) {
+    say( "[WARN] There seems to be no replica set configured. Continuing anyways." );
 
-    try {
-      rs.stepDown();
-    } catch( e ) {
-      // do nothing
-    }
+  } else {
+    /*
+     * Check if current node is the replica set primary and step down if necessary
+     */
+    if ( rs.isMaster().ismaster ) {
+      say( "[INFO] Connected to PRIMARY, going to step down..." );
 
-    // After stepdown, connections are droped. Reconnect.
-    rs.isMaster();
-
-    // Let's wait for someone else to become the new PRIMARY
-    var count = 1;
-    while( rs.isMaster().ismaster || !rs.isMaster().primary ) {
-      if ( count < 20 ) {
-        say( "* No one is promoted to PRIMARY yet, going to sleep and try again..." );
-
-        sleep( 1000 );
-        count++;
-
-      } else {
-        throw "No-one was promoted to master within "+ count +" tries"
-
+      try {
+        rs.stepDown();
+      } catch( e ) {
+        // do nothing
       }
+
+      // After stepdown, connections are droped. Reconnect.
+      rs.isMaster();
+
+      // Let's wait for someone else to become the new PRIMARY
+      var count = 1;
+      while( rs.isMaster().ismaster || !rs.isMaster().primary ) {
+        if ( count < 20 ) {
+          say( "* No one is promoted to PRIMARY yet, going to sleep and try again..." );
+
+          sleep( 1000 );
+          count++;
+
+        } else {
+          throw "No-one was promoted to master within "+ count +" tries"
+
+        }
+      }
+
+      say( "[INFO] Done." );
     }
 
-    say( "[INFO] Done." );
-  }
+    /**
+     * Enable to do stuff on the secondary
+     */
+    rs.slaveOk();
 
-  /**
-   * Enable to do stuff on the slave
-   */
-  rs.slaveOk();
+  }
 
 
   /**
@@ -68,14 +77,13 @@ try {
         dbInst = db.getSisterDB(dbName);
 
     if( dbRegex.test(dbName) ) {
-      // say( dbName +" (skipped)" );
+      say( dbName +" (skipped)" );
       continue; // skip
+
+    } else {
+      say( dbName );
+
     }
-
-    // } else {
-    //   say( dbName );
-
-    // }
 
     // Iterate all collections on the current db and compact
     try {
@@ -86,21 +94,19 @@ try {
             colInst = dbInst.getCollection(colName);
 
         if( colRegex.test(colName) ) {
-          // say( dbName +"."+ colName +" (skipped)" );
+          say( "\t- "+ colName +" (skipped)" );
           continue; // skip
 
         } else {
-          say( dbName +"."+ colName );
-          say( "\tbefore:\t"+ colInst.stats(1024).size + "MB" );
+          say( "\t- "+ colName );
 
         }
 
         try {
           dbInst.runCommand({ compact : colName });
-          say( "\tafter:\t"+ colInst.stats(1024).size + "MB" );
 
         } catch( e ) {
-          // print( "[ERROR] "+ e );
+          print( "[ERROR] "+ e );
 
         }
       }
@@ -115,3 +121,4 @@ try {
   say( "[ERROR] " + e );
 
 }
+
