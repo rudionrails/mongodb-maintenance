@@ -30,17 +30,31 @@ var adminDb   = db.getSisterDB( "admin" ),
  *  var snapshot = ["rsync", "-avz", "--delete", dbPath, "/mnt/backups/mongodb"];
  */
 
-var backupDir = "/opt/backups/mongodb", 
-    snapshot  = ["rsync", "-avz", "--delete", dbPath, backupDir];
+var date      = new Date(),
+    timestamp = [date.getFullYear(), ('0'+(date.getMonth()+1)).slice(-2), ('0'+date.getDate()).slice(-2)].join(""),
+    tarfile   = "mongodb-backup-"+ timestamp +".tar.gz", 
+    snapshot  = ["tar", "-czvf", tarfile, dbPath];
+// var backupDir = "/opt/backups/mongodb", 
+//     snapshot  = ["rsync", "-avz", "--delete", dbPath, backupDir];
 
+
+function say( m ) {
+  var date = new Date(),
+      timestamp = date.toLocaleDateString() +" "+ date.toLocaleTimeString();
+
+  print( timestamp +": "+ m );
+}
 
 try {
   /**
    * Some pre-checks
    */
-  if ( rs.isMaster().ismaster ) {
-    throw "Connected to PRIMARY. Not going to perform a backup."
+  if ( rs.status().ok == 0 ) {
+    say( "[WARN] There seems to be no replica set configured. Continuing anyways." );
 
+    if ( rs.status().ok == 1 && rs.isMaster().ismaster ) {
+      throw "Connected to PRIMARY. Not going to perform a backup."
+    }
   }
 
   if ( db.currentOp().fsyncLock == 1 ) {
@@ -54,7 +68,7 @@ try {
   try {
     // TODO: get profiling level and disable if necessary --R
 
-    print( "[INFO] Flushing data and locking for snapshot" );
+    say( "[INFO] Flushing data and locking for snapshot" );
     var lock = adminDb.runCommand({ fsync:1, lock:1 });
 
     if ( lock.ok == 0 ) {
@@ -62,19 +76,19 @@ try {
     }
 
     // execute the snapshot script
-    print( "[INFO] Performing snapshot" );
-    runProgram.apply(null, snapshot);
+    say( "[INFO] Performing snapshot" );
+    runProgram.apply( null, snapshot );
 
   } catch( e ) {
-    print( "[ERROR] "+ e );
+    say( "[ERROR] "+ e );
 
   } finally {
-    print( "[INFO ] Releasing the lock" );
+    say( "[INFO] Releasing the lock" );
     adminDb.$cmd.sys.unlock.findOne();
 
   }
 } catch( e ) {
-  print( "[ERROR] "+ e );
+  say( "[ERROR] "+ e );
 
 }
 
