@@ -29,7 +29,7 @@ mongo script/backup.js
 ```
 
 If you are running a replica set, the script will not run against the primary node and 
-abort automatically.
+abort automatically. In that case, you need to specify the port of any secondary.
 
 ```console
 mongo --port 27017 script/backup.js
