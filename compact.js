@@ -7,14 +7,26 @@
  *
  */
 
+function say( m ) {
+  var date = new Date(),
+      timestamp = date.toLocaleDateString() +" "+ date.toLocaleTimeString();
+
+  print( timestamp +": "+ m );
+}
+
 try {
 
   /**
    * check if we are the master and step down if necessary
    */
   if ( rs.isMaster().ismaster ) {
-    print( "[INFO] Connected to PRIMARY, going to step down..." );
-    rs.stepDown();
+    say( "[INFO] Connected to PRIMARY, going to step down..." );
+
+    try {
+      rs.stepDown();
+    } catch( e ) {
+      // do nothing
+    }
 
     // After stepdown, connections are droped. Reconnect.
     rs.isMaster();
@@ -23,59 +35,83 @@ try {
     var count = 1;
     while( rs.isMaster().ismaster || !rs.isMaster().primary ) {
       if ( count < 20 ) {
-        print( "* No-one else is promoted to PRIMARY yet, going to sleep and try again..." );
-        sleep( 1000 ); // second
+        say( "* No one is promoted to PRIMARY yet, going to sleep and try again..." );
 
+        sleep( 1000 );
         count++;
+
       } else {
         throw "No-one was promoted to master within "+ count +" tries"
+
       }
     }
+
+    say( "[INFO] Done." );
   }
 
-  // enable to do stuff on the slave
-  // rs.slaveOk();
+  /**
+   * Enable to do stuff on the slave
+   */
+  rs.slaveOk();
+
 
   /**
    * Compact from here onwards
    */
-  print( "[INFO] Performing compact:" );
-  // db.getSisterDB( "databse-name" )[ "collection-name" ].runCommand( "compact" )
+  say( "[INFO] Performing compact" );
+  var dbNames = db.getMongo().getDBNames(),
+      dbRegex = /^(admin|local|test)/,
+      colRegex = /^(system)/;
 
-  var dRegex = /^(admin|local|test)/,
-      cRegex = /^(system)/,
-      dNames = db.getMongo().getDBNames();
+  for( var i=0; i<dbNames.length; i++ ) {
+    var dbName = dbNames[i],
+        dbInst = db.getSisterDB(dbName);
 
-  for( i in dNames ) {
-    var dName = dNames[i],
-        d     = db.getSisterDB( dName );
+    if( dbRegex.test(dbName) ) {
+      // say( dbName +" (skipped)" );
+      continue; // skip
+    }
 
-    if( dRegex.test(dName) ) continue; // skip
+    // } else {
+    //   say( dbName );
 
-    print( "  "+ dName );
+    // }
 
-    // iterate all collections on the current db and compact
+    // Iterate all collections on the current db and compact
     try {
-      var cNames = d.getCollectionNames();
+      var colNames = dbInst.getCollectionNames();
 
-      for( j in cNames ) {
-        var cName = cNames[j];
+      for( var j=0; j<colNames.length; j++ ) {
+        var colName = colNames[j],
+            colInst = dbInst.getCollection(colName);
 
-        if( cRegex.test(cName) ) continue; // skip
+        if( colRegex.test(colName) ) {
+          // say( dbName +"."+ colName +" (skipped)" );
+          continue; // skip
 
-        print( "  - "+ cName );
+        } else {
+          say( dbName +"."+ colName );
+          say( "\tbefore:\t"+ colInst.stats(1024).size + "MB" );
 
-        // d.runCommand({ compact : cName, slaveOk : true });
-        d.runCommand({ compact : cName, slaveOk : true });
-        // d.runCommand({ compact : cName, slaveOk : true });
+        }
+
+        try {
+          dbInst.runCommand({ compact : colName });
+          say( "\tafter:\t"+ colInst.stats(1024).size + "MB" );
+
+        } catch( e ) {
+          // print( "[ERROR] "+ e );
+
+        }
       }
     } catch( e ) {
-      print( "[ERROR]"+ e )
+      say( "[ERROR] "+ e )
+
     }
+
   }
 
-
 } catch( e ) {
-  print( "[ERROR] " + e );
+  say( "[ERROR] " + e );
 
 }
