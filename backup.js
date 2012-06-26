@@ -30,7 +30,8 @@ var adminDb   = db.getSisterDB( "admin" ),
  *  var snapshot = ["rsync", "-avz", "--delete", dbPath, "/mnt/backups/mongodb"];
  */
 
-var snapshot = ["rsync", "-avz", "--delete", dbPath, "/home/rudolf/backup"];
+var backupDir = "/opt/backups/mongodb", 
+    snapshot  = ["rsync", "-avz", "--delete", dbPath, backupDir];
 
 
 try {
