@@ -19,7 +19,8 @@ or compact it.
 
 Once you have downloaded the files, you will need to open up the `backup.js` file and 
 possibly change the backup settings to your liking. By default, the `backup.js` will 
-use rsync to move your files to a designated location.
+use rsync to move your files to a designated location. However, there is an example on 
+how to tar your database within the `backup.js`.
 
 Execute the script as follows:
 
