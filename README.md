@@ -12,18 +12,16 @@
 
 This is a compilation of useful maintenance scripts for [MongoDb](http://mongodb.org).
 
-
-## Usage
-
 There are sevaral files available that you may use to either backup for database 
 or compact it.
 
-### backup.js
+## backup.js
 
 Once you have downloaded the files, you will need to open up the `backup.js` file and 
-possible change the backup settings to your liking.
+possibly change the backup settings to your liking. By default, the `backup.js` will 
+use rsync to move your files to a designated location.
 
-By default, the `backup.js` will use rsync to move your files to a designated location.
+Execute the script as follows:
 
 ```console
 mongo backup.js
@@ -37,9 +35,17 @@ mongo --port 27017 backup.js
 ```
 
 
-### compact.js
+## compact.js
 
-To be documented
+The `compact.js` will attempt to compact every collection in every database of the
+current node. The script will ignore the following databases by default: `admin`, `local` 
+and `test`. Also, for every database, the `system` collection will not be compacted.
+
+Execute the script as follows:
+
+```console
+mongo compact.js
+```
 
 
 Copyright &copy; 2012 Rudolf Schmidt, released under the MIT license.
