@@ -22,20 +22,17 @@ var adminDb   = db.getSisterDB( "admin" ),
  * locatin, please change it.
  *
  * @example Tar the data
- *  var date      = new Date(),
- *      timestamp = [date.getFullYear(), ('0'+(date.getMonth()+1)).slice(-2), ('0'+date.getDate()).slice(-2)].join(),
- *      snapshot  = ["tar", "-czvf", "mongodb-backup-"+ timestamp +".tar.gz", dbPath];
+ * var date      = new Date(),
+ *     timestamp = [date.getFullYear(), ('0'+(date.getMonth()+1)).slice(-2), ('0'+date.getDate()).slice(-2)].join(""),
+ *     tarfile   = "mongodb-backup-"+ timestamp +".tar.gz", 
+ *     snapshot  = ["tar", "-czvf", tarfile, dbPath];
  *
  * @example Rsync the data
  *  var snapshot = ["rsync", "-avz", "--delete", dbPath, "/mnt/backups/mongodb"];
  */
 
-var date      = new Date(),
-    timestamp = [date.getFullYear(), ('0'+(date.getMonth()+1)).slice(-2), ('0'+date.getDate()).slice(-2)].join(""),
-    tarfile   = "mongodb-backup-"+ timestamp +".tar.gz", 
-    snapshot  = ["tar", "-czvf", tarfile, dbPath];
-// var backupDir = "/opt/backups/mongodb", 
-//     snapshot  = ["rsync", "-avz", "--delete", dbPath, backupDir];
+var backupDir = "/opt/backups/mongodb", 
+    snapshot  = ["rsync", "-avz", "--delete", dbPath, backupDir];
 
 
 function say( m ) {
