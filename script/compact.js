@@ -19,10 +19,30 @@ function say( m ) {
 }
 
 /**
- * The following variables are used to exclude databases/collections from being compacted.
+ * The following variables are used to exclude administrative databases
+ * and collections from being compacted.
  */
 var dbRegex = /^(admin|local|test)/,
     colRegex = /^(system)/;
+
+/**
+ * Now these two following variables may need to be adjusted depending on your setup!
+ *
+ * stepDownRecoveryDelay
+ *    This variable applies when you are running a replica set. The value determines
+ *    the time to wait for the script when a stepDown on the primary node is issued. 
+ *    Upon stepDown, the replica set will go into recovery state until a new primary 
+ *    has been promoted. This may take a while and 20 seconds should be sufficient by 
+ *    default. If not, please change the value.
+ *
+ *  compactRecoveryDelay
+ *    This variable defines the maximum timeout the script will wait after every 
+ *    compaction. After compacting a collection, the node will go into recovery and it 
+ *    may take a while for it to return as secondary. It may take longer than the default
+ *    20 seconds (perhaps on really large collections).In that case, increate the value.
+ */
+var stepDownRecoveryDelay = 20,
+    compactRecoveryDelay  = 10;
 
 /**
  * The actual execution begins here.
@@ -60,16 +80,15 @@ try {
        * It can take several seconds to promote a new primary. In some cases it
        * may never happen, then we exit.
        */
-      var count = 1;
+      var count = 0;
+      say( "[INFO] Waiting for recovery..." );
       while( rs.isMaster().ismaster || !rs.isMaster().primary ) {
-        if ( count < 20 ) {
-          say( "* No one is promoted to PRIMARY yet, going to sleep and try again..." );
-
+        if ( count < stepDownRecoveryDelay ) {
           sleep( 1000 );
           count++;
 
         } else {
-          throw "No-one was promoted to master within "+ count +" tries"
+          throw "No-one was promoted to master within "+ count +" seconds"
 
         }
       }
@@ -148,14 +167,14 @@ try {
          * After compaction, the node goes into recovery, so we need to wait for 
          * it to return to normal.
          */
-        var count = 1;
+        var count = 0;
         while( !rs.isMaster().secondary ) {
-          if ( count < 20 ) {
+          if ( count < compactRecoveryDelay ) {
             sleep( 1000 );
             count++;
 
           } else {
-            throw "Timed out waiting to return from recovery after "+ count +" tries"
+            throw "Timed out waiting to return from recovery after "+ count +" seconds"
 
           }
         }
