@@ -8,10 +8,12 @@
  */
 
 /**
- * Once you have downloaded this file, you may need to change some of the backup settings.
+ * Once you have downloaded this file, you may need to change some of the 
+ * backup settings.
  *
- * By default, this script will rsync your files to a designated backup directory. It will automatically 
- * determine the data directory of the current mongo node.
+ * By default, this script will rsync your files to a designated backup 
+ * directory. It will automatically determine the data directory of the 
+ * current mongo node.
  *
  * @example Run the script from the shell
  *  mongo backup.js
@@ -20,8 +22,9 @@
  *  mongo --port 27017 backup.js
  *
  *
- * If you attempt to run it against a replica set primary node, the backup script will tell you and exit. Running 
- * it against a single node will sill prompt you a warning, but continue to lock the database and backup.
+ * If you attempt to run it against a replica set primary node, the backup 
+ * script will tell you and exit. Running it against a single node will sill 
+ * prompt you a warning, but continue to lock the database and backup.
  */
 
 
@@ -37,20 +40,24 @@ function say( m ) {
 
 
 /**
- * Switch to the admin db and get the dbpath (usually passed as argument to he mongod process).
+ * Switch to the admin db and get the dbpath (usually passed as argument to
+ * the mongod process).
  */
 var adminDb = db.getSisterDB( "admin" ),
     dbPath  = adminDb.runCommand( "getCmdLineOpts" ).parsed.dbpath || "/data/db";
 
 /**
- * The following will show some examples for backup strategies. It is important to have a `snapshot` array
- * defined as this will be the executed command!
+ * The following will show some examples for backup strategies. It is important 
+ * to have a `snapshot` array defined as this will be the executed command!
  *
  * By default, rsync is used.
  *
  * @example Tar the data
  *    var date      = new Date(),
- *        timestamp = [date.getFullYear(), ('0'+(date.getMonth()+1)).slice(-2), ('0'+date.getDate()).slice(-2)].join(""),
+ *        timestamp = [ date.getFullYear(), 
+ *                      ('0'+(date.getMonth()+1)).slice(-2), 
+ *                      ('0'+date.getDate()).slice(-2)
+ *                    ].join(""),
  *        tarfile   = "mongodb-backup-"+ timestamp +".tar.gz", 
  *        snapshot  = ["tar", "-czvf", tarfile, dbPath];
  *
@@ -67,7 +74,7 @@ var backupDir = "/opt/backups/mongodb",
  */
 try {
   /**
-   * perform some pre-checks
+   * Perform some pre-checks
    */
   if ( rs.status().ok == 0 ) {
     say( "[WARN] There seems to be no replica set configured. Continuing anyways." );
@@ -77,6 +84,7 @@ try {
 
   }
 
+  // If some other process has already locked it, then don't continue.
   if ( db.currentOp().fsyncLock == 1 ) {
     throw "Database is already locked. Not going to perform backup."
 

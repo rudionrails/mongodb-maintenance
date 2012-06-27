@@ -172,18 +172,20 @@ try {
         }
 
         /**
-         * After compaction, the node goes into recovery, so we need to wait for 
-         * it to return to normal.
+         * After compaction, the replica set node goes into recovery, so we 
+         * need to wait for it to return to normal.
          */
-        var count = 0;
-        while( !rs.isMaster().secondary ) {
-          if ( count < settings.compactRecoveryDelay ) {
-            sleep( 1000 );
-            count++;
+        if ( rs.status().ok == 1 ) {
+          var count = 0;
+          while( !rs.isMaster().secondary ) {
+            if ( count < settings.compactRecoveryDelay ) {
+              sleep( 1000 );
+              count++;
 
-          } else {
-            throw "Timed out waiting to return from recovery after "+ count +" seconds"
+            } else {
+              throw "Timed out waiting to return from recovery after "+ count +" seconds"
 
+            }
           }
         }
 
@@ -194,6 +196,11 @@ try {
     }
 
   }
+
+  /**
+   * Just to see how long it took altogether.
+   */
+  say( "[INFO] Done." );
 
 } catch( e ) {
   say( "[ERROR] " + e );
