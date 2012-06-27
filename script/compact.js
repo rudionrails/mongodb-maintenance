@@ -1,5 +1,5 @@
 /*!
- * MongoDB Backup Script
+ * MongoDB Compact Script
  *
  * Copyright 2012, Rudolf Schmidt
  * Released under the MIT license.
@@ -18,31 +18,39 @@ function say( m ) {
   print( timestamp +": "+ m );
 }
 
-/**
- * The following variables are used to exclude administrative databases
- * and collections from being compacted.
- */
-var dbRegex = /^(admin|local|test)/,
-    colRegex = /^(system)/;
 
 /**
- * Now these two following variables may need to be adjusted depending on your setup!
- *
- * stepDownRecoveryDelay
- *    This variable applies when you are running a replica set. The value determines
- *    the time to wait for the script when a stepDown on the primary node is issued. 
- *    Upon stepDown, the replica set will go into recovery state until a new primary 
- *    has been promoted. This may take a while and 20 seconds should be sufficient by 
- *    default. If not, please change the value.
- *
- *  compactRecoveryDelay
- *    This variable defines the maximum timeout the script will wait after every 
- *    compaction. After compacting a collection, the node will go into recovery and it 
- *    may take a while for it to return as secondary. It may take longer than the default
- *    20 seconds (perhaps on really large collections).In that case, increate the value.
+ * Settings, what else...
  */
-var stepDownRecoveryDelay = 20,
-    compactRecoveryDelay  = 10;
+var settings = {
+
+  /**
+   * Used to exclude administrative databases from being compacted
+   */
+  dbRegex: /^(admin|local|test)/,
+
+  /**
+   * Used to exclude administrative collections from being compacted
+   */
+  colRegex: /^(system)/,
+
+  /**
+   * This variable applies when you are running a replica set. The value determines
+   * the time to wait for the script when a stepDown on the primary node is issued. 
+   * Upon stepDown, the replica set will go into recovery state until a new primary 
+   * has been promoted. This may take a while and 20 seconds should be sufficient by 
+   * default. If not, please change the value.
+   */
+  stepDownRecoveryDelay: 20,
+
+  /**
+   * This variable defines the maximum timeout the script will wait after every 
+   * compaction. After compacting a collection, the node will go into recovery and it 
+   * may take a while for it to return as secondary. It may take longer than the default
+   * 20 seconds (perhaps on really large collections). In that case, increate the value.
+   */
+  compactRecoveryDelay: 20
+}
 
 /**
  * The actual execution begins here.
@@ -50,7 +58,7 @@ var stepDownRecoveryDelay = 20,
 try {
 
   /**
-   * perform some pre-checks
+   * Perform some pre-checks
    */
   if ( rs.status().ok == 0 ) {
     say( "[WARN] There seems to be no replica set configured. Continuing anyways." );
@@ -83,7 +91,7 @@ try {
       var count = 0;
       say( "[INFO] Waiting for recovery..." );
       while( rs.isMaster().ismaster || !rs.isMaster().primary ) {
-        if ( count < stepDownRecoveryDelay ) {
+        if ( count < settings.stepDownRecoveryDelay ) {
           sleep( 1000 );
           count++;
 
@@ -123,7 +131,7 @@ try {
     /**
      * Check if we want to skip the database or continue.
      */
-    if( dbRegex.test(dbName) ) {
+    if( settings.dbRegex.test(dbName) ) {
       say( dbName +" (skipped)" );
       continue; // skip
 
@@ -142,7 +150,7 @@ try {
       /**
        * Check if we want to skip the collection or continue.
        */
-      if( colRegex.test(colName) ) {
+      if( settings.colRegex.test(colName) ) {
         say( "\t- "+ colName +" (skipped)" );
         continue; // skip
 
@@ -169,7 +177,7 @@ try {
          */
         var count = 0;
         while( !rs.isMaster().secondary ) {
-          if ( count < compactRecoveryDelay ) {
+          if ( count < settings.compactRecoveryDelay ) {
             sleep( 1000 );
             count++;
 

@@ -37,12 +37,6 @@ function say( m ) {
 
 
 /**
- * Track time
- */
-var date = new Date();
-
-
-/**
  * Switch to the admin db and get the dbpath (usually passed as argument to he mongod process).
  */
 var adminDb = db.getSisterDB( "admin" ),
