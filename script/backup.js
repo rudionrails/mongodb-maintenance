@@ -12,8 +12,8 @@
  * Switch to the admin db and get the dbpath (usually
  * passed as argument to he mongod process)
  */
-var adminDb   = db.getSisterDB( "admin" ),
-    dbPath    = adminDb.runCommand( "getCmdLineOpts" ).parsed.dbpath || "/data/db";
+var adminDb = db.getSisterDB( "admin" ),
+    dbPath  = adminDb.runCommand( "getCmdLineOpts" ).parsed.dbpath || "/data/db";
 
 /**
  * This file is executed when copying files for the snapshot.
@@ -49,9 +49,9 @@ try {
   if ( rs.status().ok == 0 ) {
     say( "[WARN] There seems to be no replica set configured. Continuing anyways." );
 
-    if ( rs.status().ok == 1 && rs.isMaster().ismaster ) {
+  } else if ( rs.isMaster().ismaster ) {
       throw "Connected to PRIMARY. Not going to perform a backup."
-    }
+
   }
 
   if ( db.currentOp().fsyncLock == 1 ) {
@@ -88,4 +88,3 @@ try {
   say( "[ERROR] "+ e );
 
 }
-
