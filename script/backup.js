@@ -7,6 +7,7 @@
  * More information: http://github.com/rudionrails/mongodb-maintenance
  */
 
+
 /**
  * Once you have downloaded this file, you may need to change some of the 
  * backup settings.
@@ -25,6 +26,8 @@
  * If you attempt to run it against a replica set primary node, the backup 
  * script will tell you and exit. Running it against a single node will sill 
  * prompt you a warning, but continue to lock the database and backup.
+ *
+ * @see http://www.mongodb.org/display/DOCS/fsync+Command#fsyncCommand-Lock%2CSnapshotandUnlock
  */
 
 
@@ -38,13 +41,21 @@ function say( m ) {
   print( timestamp +": "+ m );
 }
 
-
 /**
- * Switch to the admin db and get the dbpath (usually passed as argument to
- * the mongod process).
+ * Settings, what else...
  */
-var adminDb = db.getSisterDB( "admin" ),
-    dbPath  = adminDb.runCommand( "getCmdLineOpts" ).parsed.dbpath || "/data/db";
+var settings = {
+  /**
+   * Get the path to the data files. Change this if it can not be resolved automatically.
+   */
+  dbPath: db.adminCommand( "getCmdLineOpts" ).parsed.dbpath || "/data/db",
+
+  /**
+   * The directory for the backup files. Change this if you want them in a different location.
+   */
+  backupDir: "/opt/backups/mongodb"
+}
+
 
 /**
  * The following will show some examples for backup strategies. It is important 
@@ -56,20 +67,14 @@ var adminDb = db.getSisterDB( "admin" ),
  *    var date      = new Date(),
  *        timestamp = [ date.getFullYear(), 
  *                      ('0'+(date.getMonth()+1)).slice(-2), 
- *                      ('0'+date.getDate()).slice(-2)
- *                    ].join(""),
- *        backupDir = "/opt/backups/mongodb", 
- *        tarfile   = [ backupDir, 
- *                      "mongodb-backup-"+ timestamp +".tar.gz"
- *                    ].join( "/" ), 
- *        snapshot  = ["tar", "-czvf", tarfile, dbPath];
+ *                      ('0'+date.getDate()).slice(-2) ].join(""),
+ *        tarfile   = [ settings.backupDir, "mongodb-backup-"+ timestamp +".tar.gz" ].join( "/" ), 
+ *        snapshot  = ["tar", "-czvf", tarfile, settings.dbPath];
  *
  * @example Rsync the data
- *    var backupDir = "/opt/backups/mongodb",
- *        snapshot  = ["rsync", "-avz", "--delete", dbPath, backupDir];
+ *    var snapshot  = ["rsync", "-avz", "--delete", settings.dbPath, settings.backupDir];
  */
-var backupDir = "/opt/backups/mongodb", 
-    snapshot  = ["rsync", "-avz", "--delete", dbPath, backupDir];
+var snapshot  = ["rsync", "-avz", "--delete", settings.dbPath, settings.backupDir];
 
 
 /**
@@ -95,11 +100,9 @@ try {
 
   /**
    * When pre-checks are good, we can do the real backup: rsync data and lock the node.
-   *
-   * @see http://www.mongodb.org/display/DOCS/fsync+Command#fsyncCommand-Lock%2CSnapshotandUnlock
    */
   say( "[INFO] Flushing data and locking for snapshot" );
-  var lock = adminDb.runCommand({ fsync:1, lock:1 });
+  var lock = db.adminCommand({ fsync:1, lock:1 });
 
   /**
    * When no lock acquired, prompt and exit. Something has already 
@@ -125,7 +128,7 @@ try {
      * Make sure the lock is released in any case.
      */
     say( "[INFO] Releasing the lock" );
-    adminDb.$cmd.sys.unlock.findOne();
+    db.getSiblingDB("admin").$cmd.sys.unlock.findOne()
 
   }
 
