@@ -58,7 +58,10 @@ var adminDb = db.getSisterDB( "admin" ),
  *                      ('0'+(date.getMonth()+1)).slice(-2), 
  *                      ('0'+date.getDate()).slice(-2)
  *                    ].join(""),
- *        tarfile   = "mongodb-backup-"+ timestamp +".tar.gz", 
+ *        backupDir = "/opt/backups/mongodb", 
+ *        tarfile   = [ backupDir, 
+ *                      "mongodb-backup-"+ timestamp +".tar.gz"
+ *                    ].join( "/" ), 
  *        snapshot  = ["tar", "-czvf", tarfile, dbPath];
  *
  * @example Rsync the data
